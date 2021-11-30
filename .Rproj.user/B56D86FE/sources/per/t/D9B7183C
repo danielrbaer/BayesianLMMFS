@@ -3,7 +3,7 @@
     "path": "C:/Users/baerd/Desktop/BayesianLMMFS/Create BayesianLMMFS R package.R",
     "project_path": "Create BayesianLMMFS R package.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "2595650643",
     "contents": "",
     "dirty": false,
     "created": 1638295125279.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "190,0",
-        "scrollLine": "178"
+        "cursorPosition": "193,64",
+        "scrollLine": "169"
     },
     "folds": "",
-    "lastKnownWriteTime": 1638300479,
+    "lastKnownWriteTime": 1638303135,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1638300479222,
+    "last_content_update": 1638303135894,
     "read_only": false,
     "read_only_alternatives": []
 }

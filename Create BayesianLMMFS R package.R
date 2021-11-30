@@ -183,20 +183,12 @@ model_results<-
 
 
 
-#Inspect feature parameter estimates:
+#----------------------------------------------------------------------------------#
 
-model_results$MCMC_summary%>%head
-
-model_results$MCMC_output%>%head
+#Try downloading package from Github:
 
 
-
-model_results$MCMC_output$subject%>%class
-
+devtools::install_github('danielrbaer/BayesianLMMFS')
 
 
-
-model_results$subject$q%>%class
-
-apply(model_results$MCMC_output,2,class)
-model_results$MCMC_output$parameter%>%unique
+#This seems to work (if we have the repository set to be publically available)
