@@ -170,18 +170,33 @@ model_results<-
     Z,
     p_k,
 
-    nsim=2000,
-    burn=1000,
+    nsim=200,
+    burn=100,
     thin=1,
 
     Q=10^-3*I_J,
 
-    C_0=10^-3*I_q
+    C_0=10^-3*I_q,
+
+    raw_MCMC_output = T
   )
 
 
 
 #Inspect feature parameter estimates:
 
-model_results$MCMC_summary%>%dplyr::filter(parameter=='beta')
+model_results$MCMC_summary%>%head
 
+model_results$MCMC_output%>%head
+
+
+
+model_results$MCMC_output$subject%>%class
+
+
+
+
+model_results$subject$q%>%class
+
+apply(model_results$MCMC_output,2,class)
+model_results$MCMC_output$parameter%>%unique

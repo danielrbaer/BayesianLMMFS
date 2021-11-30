@@ -25,7 +25,7 @@ BayesianLMMFS(
   b_1 = 1,
   g = 1,
   h = 1,
-  raw_MCMC_output = F
+  raw_MCMC_output = T
 )
 }
 \arguments{
@@ -68,14 +68,15 @@ iterations to be performed.}
 iterations to be discarded as part of the burn-in period.}
 
 \item{thin}{The thinning interval applied to the MCMC
-sample.}
+sample; this is useful if the user wishes to conserve computational
+memory when fitting the model.}
 
-\item{mcmc_div}{The interval at which the MCMC
+\item{mcmc_div}{The interval at which the current MCMC
 iteration number will be reported; the
 default value is
 \code{floor((nsim-burn)/4)}.}
 
-\item{d}{The degrees of freedom hyper-prior for the inverse-Wishart-distributed
+\item{d}{The degrees of freedom parameter for the inverse-Wishart-distributed
 covariance matrix,
 \mjeqn{\underset{J\times J}{\mathbf{\Sigma}}}{};
 note that
@@ -94,14 +95,14 @@ the default value is \mjeqn{J}{J}.}
 
 \item{Q}{The
 \mjeqn{J\times J}{}
-scale matrix hyper-prior for the inverse-Wishart-distributed
+scale matrix parameter for the inverse-Wishart-distributed
 covariance matrix,
 \mjeqn{\underset{J\times J}{\mathbf{\Sigma}}}{}.
 Note that
 \code{Q}
 must be positive-definite.}
 
-\item{nu_0}{The degrees of freedom hyper-prior for the inverse-Wishart-distributed
+\item{nu_0}{The degrees of freedom parameter for the inverse-Wishart-distributed
 covariance matrix,
 \mjeqn{\underset{q\times q}{\mathbf{G}}}{};
 note that
@@ -118,22 +119,22 @@ the default value is \mjeqn{q}{q}.}
 
 \item{C_0}{The
 \mjeqn{q\times q}{}
-scale matrix hyper-prior for the inverse-Wishart-distributed
+scale matrix parameter for the inverse-Wishart-distributed
 covariance matrix,
 \mjeqn{\underset{q\times q}{\mathbf{G}}}{}.
 Note that
 \code{C_0}
 must be positive-definite.}
 
-\item{alpha}{The shape hyper-prior for
+\item{alpha}{The shape parameter for
 the inverse-gamma-distributed
 \mjeqn{\sigma^2}{};
 note that \mjeqn{\sigma^2}{}
 represents the
+(conditional)
 variance for
 each vector of longitudinal outcome data,
-of the longitudinal outcome data,
-\mjeqn{\underset{J\times 1}{\mathbf{y}_i}}{}
+\mjeqn{\underset{J\times 1}{\mathbf{y}_i}}{},
 for
 \mjeqn{i = 1, \cdots, n}{}.
 That is,
@@ -142,12 +143,12 @@ That is,
 \mjeqn{}{}.
 The default value is \mjeqn{10^-3}{}.}
 
-\item{gamma}{The scale hyper-prior for
+\item{gamma}{The scale parameter for
 the inverse-gamma-distributed
 \mjeqn{\sigma^2}{}.
 The default value is \mjeqn{10^-3}{}.}
 
-\item{o}{The shape hyper-prior for
+\item{o}{The shape parameter for
 the inverse-gamma-distributed
 \mjeqn{s^2}{};
 note that \mjeqn{s^2}{}
@@ -158,12 +159,12 @@ spike-and-slab feature selection parameter,
 \mjeqn{\tau_{l}^2}{}.
 The default value is \mjeqn{10^-3}{}.}
 
-\item{u}{The scale hyper-prior for
+\item{u}{The scale parameter for
 the inverse-gamma-distributed
 \mjeqn{s^2}{}.
 The default value is \mjeqn{10^-3}{}.}
 
-\item{a_1}{The first shape hyper-prior for
+\item{a_1}{The first shape parameter for
 the Beta-distributed
 \mjeqn{{{\theta }_{{\tilde{\beta }}}}}{};
 note that
@@ -177,12 +178,12 @@ equaling
 \mjeqn{1}{}.
 The default value is \mjeqn{1}{1}.}
 
-\item{b_1}{The second shape hyper-prior for
+\item{b_1}{The second shape parameter for
 the Beta-distributed
 \mjeqn{{{\theta }_{{\tilde{\beta }}}}}{}.
 The default value is \mjeqn{1}{1}.}
 
-\item{g}{The first shape hyper-prior for
+\item{g}{The first shape parameter for
 the Beta-distributed
 \mjeqn{{{\theta }_{{{\tau }^{2}}}}}{};
 note that
@@ -196,21 +197,21 @@ equaling
 \mjeqn{1}{}.
 The default value is \mjeqn{1}{1}.}
 
-\item{h}{The second shape hyper-prior for
+\item{h}{The second shape parameter for
 the Beta-distributed
 \mjeqn{{{\theta }_{{{\tau }^{2}}}}}{}.
 The default value is \mjeqn{1}{}.}
 
-\item{raw_MCMC_output}{If set to \code{TRUE}, the output for \code{BSSMfs} will include a data frame
+\item{raw_MCMC_output}{If set to \code{TRUE}, the output for \code{BayesianLMMFS} will include a data frame
 containing un-summarized MCMC output.
-The default value is \code{FALSE}.}
+The default value is \code{TRUE}.}
 }
 \value{
-If \code{raw_MCMC_output=TRUE}, \code{BSSMfs} returns a list with two data frames named
+If \code{raw_MCMC_output=TRUE}, \code{BayesianLMMFS} returns a list with two data frames named
 \code{"MCMC_output"} and \code{"MCMC_summary"};
 \code{"MCMC_output"} is a data frame with the un-summarized MCMC output, while
 \code{"MCMC_summary"} is a data frame with the summarized MCMC output.
-If \code{raw_MCMC_output=FALSE}, \code{BSSMfs} returns a list with only one data frame named
+If \code{raw_MCMC_output=FALSE}, \code{BayesianLMMFS} returns a list with only one data frame named
 \code{"MCMC_summary"}
 
 The \code{"MCMC_output"} data frame containing the un-summarized MCMC output has the following columns:
@@ -222,25 +223,25 @@ The \code{"MCMC_output"} data frame containing the un-summarized MCMC output has
 
  \item{"feature_group"}{} A number denoting the \mjeqn{k=1,\cdots,K}{} feature groups.
 
- \item{"subject"}{} A number denoting the \mjeqn{i=1,\cdots,n}{} subjects.
+ \item{"subject"}{} A character denoting the \mjeqn{i=1,\cdots,n}{} subjects.
 
  \item{"parameter"}{} A character denoting the model parameter; the model parameters include:
 
  \itemize{
 
- \item{"b"}{} the random parameters,
+ \item{"b"}{} the random effect parameters,
  \mjeqn{\underset{q\times 1}{\mathop{{{\mathbf{b}}_{i}}}}\,}{}.
 
  \item{"beta"}{} The feature parameters,
  \mjeqn{\underset{p\times J}{\mathop{\mathbf{B}}}\,}{}.
 
- \item{"G"}{} The random parameter covariance matrix,
+ \item{"G"}{} The random effect parameter covariance matrix,
  \mjeqn{\underset{q\times q}{\mathop{\mathbf{G}}}\,}{}.
 
- \item{"pi_0k"}{} The group-level feature selection parameters,
+ \item{"pi_0k"}{} The group-level feature selection indicator parameters,
  \mjeqn{{{\pi}_{0k}}}{}.
 
- \item{"pi_0l"}{} The individual feature selection parameters,
+ \item{"pi_0l"}{} The individual feature selection indicator parameters,
  \mjeqn{{{\pi}_{0l}}}{}.
 
  \item{"s2"}{} The variance parameter of
@@ -254,7 +255,7 @@ The \code{"MCMC_output"} data frame containing the un-summarized MCMC output has
  \mjeqn{\underset{J\times 1}{\mathbf{y}_i}}{},
  \mjeqn{\sigma^{2}}{}.
 
- \item{"tau_l2"}{} The spike-and-slab parameters,
+ \item{"tau_l2"}{} The slab parameters,
  \mjeqn{\tau _{l}^{2}}{}.
 
  \item{"theta_beta_tilde"}{} The probability parameter for group-level feature selection,
@@ -262,11 +263,6 @@ The \code{"MCMC_output"} data frame containing the un-summarized MCMC output has
 
  \item{"theta_tau2"}{} The probability parameter for individual feature selection,
  \mjeqn{{{\theta }_{\tau^{2}}}}{}.
-
- \item{"log_likelihood"}{} The log of the data likelihood model for each subject at each occasion;
- this is used to compute
- the approximate leave-one-out cross-validation measure as described in
- Vehtari et al.
 
 }
 
@@ -276,10 +272,10 @@ The \code{"MCMC_output"} data frame containing the un-summarized MCMC output has
  each element
  is denoted by the character \code{"tj"}.
 
- \item{"q"}{} A number denoting the \mjeqn{q}{} random effect parameters,
+ \item{"q"}{} A character denoting the \mjeqn{q}{} random effect parameters,
  \mjeqn{\underset{q\times 1}{\mathop{{{\mathbf{b}}_{i}}}}\,}{}.
 
- \item{"row_q"}{} A number denoting the \mjeqn{q^2}{} elements of the
+ \item{"row_q"}{} A character denoting the \mjeqn{q^2}{} elements of the
  random effect parameter covariance matrix,
  \mjeqn{\underset{q\times q}{\mathop{\mathbf{G}}}\,}{}.
 
@@ -287,14 +283,14 @@ The \code{"MCMC_output"} data frame containing the un-summarized MCMC output has
 
  \item{"mcmc_iter"}{} The MCMC iteration number.
 
- \item{"value"}{} The numeric value of the model parameter at each MCMC iteration.
+ \item{"value"}{} The numeric posterior estimate of the model parameter at each MCMC iteration.
 
 }
 
 The \code{"MCMC_summary"} data frame containing the summarized MCMC output has the following columns:
 \itemize{
 
- \item{"feature"}{} A number denoting the \mjeqn{l=1,\cdots,p}{} feature parameters.
+ \item{"feature"}{} A character denoting the \mjeqn{l=1,\cdots,p}{} feature parameters.
 
  \item{"occasion"}{} A character denoting the \mjeqn{j=1,\cdots,J}{} occasions; each occasion
  is denoted by the character string \code{"tj"}.
@@ -330,28 +326,7 @@ The \code{"MCMC_summary"} data frame containing the summarized MCMC output has t
  \item{"MCMC_UCL"}{} The numeric MCMC \mjeqn{97.5^{th}}{} percentile for each model parameter;
  used to construct the \mjeqn{95}{} percent CI for each model parameter.
 
- \item{"Geweke_diag"}{} The numeric Geweke MCMC diagnostic for each model parameter; calculated using
- the \code{coda} R package by Plummer et al.
-
- \item{"lag_0"}{} The numeric lag 0 autocorrelation for each model parameter; calculated using
- the \code{coda} R package by Plummer et al.
-
- \item{"lag_5"}{} The numeric lag 5 autocorrelation for each model parameter; calculated using
- the \code{coda} R package by Plummer et al.
-
- \item{"lag_10"}{} The numeric lag 10 autocorrelation for each model parameter; calculated using
- the \code{coda} R package by Plummer et al.
-
- \item{"ESS"}{} The numeric MCMC effective sample size for each model parameter; calculated using
- the \code{coda} R package by Plummer et al.
-
  \item{"comp_time"}{} The elapsed computation time in seconds.
-
- \item{"elpd_loo"}{} The estimated expected log pointwise predictive density calculated using the \code{loo}
- R package
- developed by Vehtari et al.
-
-
 
 }
 }
@@ -464,15 +439,15 @@ for (i in 1:n){
 
   X_kron_i<-diag(J)\%x\%t(X[i,])
 
-  #Mean structure:
+  #Marginal mean structure:
 
   SS_MS_i<-X_kron_i\%*\%beta
 
-  #Covariance structure:
+  #Marginal covariance structure:
 
   cov_y_i<-Z[[i]]\%*\%G\%*\%t(Z[[i]])+sigma2_I_J
 
-  #Outcome data:
+  #Longitudinal outcome data:
 
   Y_transpose[,i]<-MASS::mvrnorm(n=1,
                      mu=SS_MS_i,
@@ -490,7 +465,7 @@ I_q<-diag(q)
 
 model_results<-
 
-BSSMfs(
+BayesianLMMFS(
 
     Y_transpose,
     X,

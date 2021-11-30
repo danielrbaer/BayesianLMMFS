@@ -53,9 +53,10 @@
 #' iterations to be discarded as part of the burn-in period.
 #'
 #' @param thin The thinning interval applied to the MCMC
-#' sample.
+#' sample; this is useful if the user wishes to conserve computational
+#' memory when fitting the model.
 #'
-#' @param mcmc_div The interval at which the MCMC
+#' @param mcmc_div The interval at which the current MCMC
 #' iteration number will be reported; the
 #' default value is
 #' \code{floor((nsim-burn)/4)}.
@@ -117,10 +118,10 @@
 #' \mjeqn{\sigma^2}{};
 #' note that \mjeqn{\sigma^2}{}
 #' represents the
+#' (conditional)
 #' variance for
 #' each vector of longitudinal outcome data,
-#' of the longitudinal outcome data,
-#' \mjeqn{\underset{J\times 1}{\mathbf{y}_i}}{}
+#' \mjeqn{\underset{J\times 1}{\mathbf{y}_i}}{},
 #' for
 #' \mjeqn{i = 1, \cdots, n}{}.
 #' That is,
@@ -188,15 +189,15 @@
 #' \mjeqn{{{\theta }_{{{\tau }^{2}}}}}{}.
 #' The default value is \mjeqn{1}{}.
 #'
-#' @param raw_MCMC_output If set to \code{TRUE}, the output for \code{BSSMfs} will include a data frame
+#' @param raw_MCMC_output If set to \code{TRUE}, the output for \code{BayesianLMMFS} will include a data frame
 #' containing un-summarized MCMC output.
-#' The default value is \code{FALSE}.
+#' The default value is \code{TRUE}.
 #'
-#' @return If \code{raw_MCMC_output=TRUE}, \code{BSSMfs} returns a list with two data frames named
+#' @return If \code{raw_MCMC_output=TRUE}, \code{BayesianLMMFS} returns a list with two data frames named
 #' \code{"MCMC_output"} and \code{"MCMC_summary"};
 #' \code{"MCMC_output"} is a data frame with the un-summarized MCMC output, while
 #' \code{"MCMC_summary"} is a data frame with the summarized MCMC output.
-#' If \code{raw_MCMC_output=FALSE}, \code{BSSMfs} returns a list with only one data frame named
+#' If \code{raw_MCMC_output=FALSE}, \code{BayesianLMMFS} returns a list with only one data frame named
 #' \code{"MCMC_summary"}
 #'
 #' The \code{"MCMC_output"} data frame containing the un-summarized MCMC output has the following columns:
@@ -208,25 +209,25 @@
 #'
 #'  \item{"feature_group"}{} A number denoting the \mjeqn{k=1,\cdots,K}{} feature groups.
 #'
-#'  \item{"subject"}{} A number denoting the \mjeqn{i=1,\cdots,n}{} subjects.
+#'  \item{"subject"}{} A character denoting the \mjeqn{i=1,\cdots,n}{} subjects.
 #'
 #'  \item{"parameter"}{} A character denoting the model parameter; the model parameters include:
 #'
 #'  \itemize{
 #'
-#'  \item{"b"}{} the random parameters,
+#'  \item{"b"}{} the random effect parameters,
 #'  \mjeqn{\underset{q\times 1}{\mathop{{{\mathbf{b}}_{i}}}}\,}{}.
 #'
 #'  \item{"beta"}{} The feature parameters,
 #'  \mjeqn{\underset{p\times J}{\mathop{\mathbf{B}}}\,}{}.
 #'
-#'  \item{"G"}{} The random parameter covariance matrix,
+#'  \item{"G"}{} The random effect parameter covariance matrix,
 #'  \mjeqn{\underset{q\times q}{\mathop{\mathbf{G}}}\,}{}.
 #'
-#'  \item{"pi_0k"}{} The group-level feature selection parameters,
+#'  \item{"pi_0k"}{} The group-level feature selection indicator parameters,
 #'  \mjeqn{{{\pi}_{0k}}}{}.
 #'
-#'  \item{"pi_0l"}{} The individual feature selection parameters,
+#'  \item{"pi_0l"}{} The individual feature selection indicator parameters,
 #'  \mjeqn{{{\pi}_{0l}}}{}.
 #'
 #'  \item{"s2"}{} The variance parameter of
@@ -240,7 +241,7 @@
 #'  \mjeqn{\underset{J\times 1}{\mathbf{y}_i}}{},
 #'  \mjeqn{\sigma^{2}}{}.
 #'
-#'  \item{"tau_l2"}{} The spike-and-slab parameters,
+#'  \item{"tau_l2"}{} The slab parameters,
 #'  \mjeqn{\tau _{l}^{2}}{}.
 #'
 #'  \item{"theta_beta_tilde"}{} The probability parameter for group-level feature selection,
@@ -248,11 +249,6 @@
 #'
 #'  \item{"theta_tau2"}{} The probability parameter for individual feature selection,
 #'  \mjeqn{{{\theta }_{\tau^{2}}}}{}.
-#'
-#'  \item{"log_likelihood"}{} The log of the data likelihood model for each subject at each occasion;
-#'  this is used to compute
-#'  the approximate leave-one-out cross-validation measure as described in
-#'  Vehtari et al.
 #'
 #'}
 #'
@@ -262,10 +258,10 @@
 #'  each element
 #'  is denoted by the character \code{"tj"}.
 #'
-#'  \item{"q"}{} A number denoting the \mjeqn{q}{} random effect parameters,
+#'  \item{"q"}{} A character denoting the \mjeqn{q}{} random effect parameters,
 #'  \mjeqn{\underset{q\times 1}{\mathop{{{\mathbf{b}}_{i}}}}\,}{}.
 #'
-#'  \item{"row_q"}{} A number denoting the \mjeqn{q^2}{} elements of the
+#'  \item{"row_q"}{} A character denoting the \mjeqn{q^2}{} elements of the
 #'  random effect parameter covariance matrix,
 #'  \mjeqn{\underset{q\times q}{\mathop{\mathbf{G}}}\,}{}.
 #'
@@ -273,21 +269,21 @@
 #'
 #'  \item{"mcmc_iter"}{} The MCMC iteration number.
 #'
-#'  \item{"value"}{} The numeric value of the model parameter at each MCMC iteration.
+#'  \item{"value"}{} The numeric posterior estimate of the model parameter at each MCMC iteration.
 #'
 #' }
 #'
 #' The \code{"MCMC_summary"} data frame containing the summarized MCMC output has the following columns:
 #' \itemize{
 #'
-#'  \item{"feature"}{} A number denoting the \mjeqn{l=1,\cdots,p}{} feature parameters.
+#'  \item{"feature"}{} A character denoting the \mjeqn{l=1,\cdots,p}{} feature parameters.
 #'
 #'  \item{"occasion"}{} A character denoting the \mjeqn{j=1,\cdots,J}{} occasions; each occasion
 #'  is denoted by the character string \code{"tj"}.
 #'
 #'  \item{"feature_group"}{} A number denoting the \mjeqn{k=1,\cdots,K}{} feature groups.
 #'
-#'  \item{"subject"}{} A number denoting the \mjeqn{i=1,\cdots,n}{} subjects.
+#'  \item{"subject"}{} A character denoting the \mjeqn{i=1,\cdots,n}{} subjects.
 #'
 #'  \item{"parameter"}{} A character denoting the model parameter; the model parameters are the
 #'  same here as for the \code{"MCMC_output"} data frame.
@@ -298,9 +294,9 @@
 #'  each element
 #'  is denoted by the character \code{"tj"}.
 #'
-#'  \item{"q"}{} A number denoting the \mjeqn{q}{} random effect parameters.
+#'  \item{"q"}{} A character denoting the \mjeqn{q}{} random effect parameters.
 #'
-#'  \item{"row_q"}{} A number denoting the \mjeqn{q^2}{} elements of the
+#'  \item{"row_q"}{} A character denoting the \mjeqn{q^2}{} elements of the
 #'  random effect parameter covariance matrix,
 #'  \mjeqn{\underset{q\times q}{\mathop{\mathbf{G}}}\,}{}.
 #'
@@ -316,28 +312,7 @@
 #'  \item{"MCMC_UCL"}{} The numeric MCMC \mjeqn{97.5^{th}}{} percentile for each model parameter;
 #'  used to construct the \mjeqn{95}{} percent CI for each model parameter.
 #'
-#'  \item{"Geweke_diag"}{} The numeric Geweke MCMC diagnostic for each model parameter; calculated using
-#'  the \code{coda} R package by Plummer et al.
-#'
-#'  \item{"lag_0"}{} The numeric lag 0 autocorrelation for each model parameter; calculated using
-#'  the \code{coda} R package by Plummer et al.
-#'
-#'  \item{"lag_5"}{} The numeric lag 5 autocorrelation for each model parameter; calculated using
-#'  the \code{coda} R package by Plummer et al.
-#'
-#'  \item{"lag_10"}{} The numeric lag 10 autocorrelation for each model parameter; calculated using
-#'  the \code{coda} R package by Plummer et al.
-#'
-#'  \item{"ESS"}{} The numeric MCMC effective sample size for each model parameter; calculated using
-#'  the \code{coda} R package by Plummer et al.
-#'
 #'  \item{"comp_time"}{} The elapsed computation time in seconds.
-#'
-#'  \item{"elpd_loo"}{} The estimated expected log pointwise predictive density calculated using the \code{loo}
-#'  R package
-#'  developed by Vehtari et al.
-#'
-#'
 #'
 #' }
 #'
@@ -440,15 +415,15 @@
 #'
 #'   X_kron_i<-diag(J)%x%t(X[i,])
 #'
-#'   #Mean structure:
+#'   #Marginal mean structure:
 #'
 #'   SS_MS_i<-X_kron_i%*%beta
 #'
-#'   #Covariance structure:
+#'   #Marginal covariance structure:
 #'
 #'   cov_y_i<-Z[[i]]%*%G%*%t(Z[[i]])+sigma2_I_J
 #'
-#'   #Outcome data:
+#'   #Longitudinal outcome data:
 #'
 #'   Y_transpose[,i]<-MASS::mvrnorm(n=1,
 #'                      mu=SS_MS_i,
@@ -466,7 +441,7 @@
 #'
 #' model_results<-
 #'
-#' BSSMfs(
+#' BayesianLMMFS(
 #'
 #'     Y_transpose,
 #'     X,
@@ -545,7 +520,7 @@ BayesianLMMFS<-function(
 
   #-------#
 
-  raw_MCMC_output=F){
+  raw_MCMC_output=T){
 
   #----------------------------------------------------------------------------------#
 
@@ -2723,6 +2698,43 @@ BayesianLMMFS<-function(
 
   #-------------------------------#
 
+  #Add comp time:
+
+  MCMC_output_df$comp_time<-
+    (Sys.time()-start_comp_time)%>%
+    as.numeric(.,units='secs')
+
+
+  MCMC_summary_df$comp_time<-
+    (Sys.time()-start_comp_time)%>%
+    as.numeric(.,units='secs')
+
+
+  #-------------------------------#
+
+  #Get rid of feature_group_size col here:
+
+  MCMC_output_df<-
+    MCMC_output_df%>%
+    dplyr::select(-feature_group_size)
+
+  #Make row_q a character var.:
+
+  MCMC_output_df<-
+    MCMC_output_df%>%
+    dplyr::mutate(row_q=as.character(row_q))
+
+  MCMC_summary_df<-
+    MCMC_summary_df%>%
+    dplyr::mutate(row_q=as.character(row_q))
+
+  #Make subject a character var:
+
+  MCMC_summary_df$subject<-
+    as.character(MCMC_summary_df$subject)
+
+
+  #-------------------------------#
 
   if(raw_MCMC_output==T){
 
