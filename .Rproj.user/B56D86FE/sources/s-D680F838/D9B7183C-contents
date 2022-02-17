@@ -192,3 +192,6 @@ devtools::install_github('danielrbaer/BayesianLMMFS')
 
 
 #This seems to work (if we have the repository set to be publically available)
+
+
+BayesianLMMFS::BayesianLMMFS()

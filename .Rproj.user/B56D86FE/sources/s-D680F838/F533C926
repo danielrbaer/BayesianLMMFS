@@ -3,7 +3,7 @@
     "path": "C:/Users/baerd/Desktop/BayesianLMMFS/R/BayesianLMMFS.R",
     "project_path": "R/BayesianLMMFS.R",
     "type": "r_source",
-    "hash": "3856943185",
+    "hash": "0",
     "contents": "",
     "dirty": false,
     "created": 1638295168217.0,
@@ -12,8 +12,8 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "286,2",
-        "scrollLine": "0"
+        "cursorPosition": "537,0",
+        "scrollLine": "528"
     },
     "folds": "",
     "lastKnownWriteTime": 1638300440,
