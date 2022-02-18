@@ -528,34 +528,35 @@ BayesianLMMFS<-function(
 
   #Computational time:
 
-  start_comp_time<-Sys.time()
+  start_comp_time<-
+    Sys.time()
 
   #----------------------------------------------------------------------------------#
 
   #Define J and n:
 
-  J<-nrow(Y_transpose)
+  # Y_transpose<-test_sim_dat$Y_transpose_list$m_1
 
-  n<-ncol(Y_transpose)
+  J<-
+    nrow(Y_transpose)
+
+  n<-
+    ncol(Y_transpose)
 
   #Define diag(J)
 
-  I_J<-diag(J)
-
-  #--------------------------#
-
-  #Create vec(Y^T) (Jn x 1):
-
-  vec_Y_transpose<-matrix(Y_transpose,
-                          nrow=(J*n),
-                          ncol=1)
-
+  I_J<-
+    diag(J)
 
   #----------------------------------------------------------------------------------#
 
   #Define K:
 
-  K<-length(p_k)
+  p_k<-
+    p_k%>%as.vector
+
+  K<-
+    length(p_k)
 
   #----------------------------------------------------------------------------------#
 
@@ -563,96 +564,42 @@ BayesianLMMFS<-function(
 
   #Define p:
 
-  p<-ncol(X)
+  p<-
+    ncol(X)
 
   #----------------------------------------------------------------------------------#
 
-  #Create fn for creating data matrices, whose
-  #elements are I_J kron c_i^T:
+  #Define q:
 
-  ss_data_matrix_fn<-function(data_matrix,
-                              J){
+  q<-
+    ncol(Z[[1]])
 
-    #Define diag(J)
+  #----------------------------------------------------------------------------------#
 
-    I_J<-diag(J)
-
-    #--------------------------#
-
-    data_matrix_list<-list()
-
-    #--------------------------#
-
-    #Define n:
-
-    n<-nrow(data_matrix)
-
-    #--------------------------#
-
-    #Define p:
-
-    p<-ncol(data_matrix)
-
-    #--------------------------#
-
-    for(i in 1:n){
-
-      c_i_T<-
-        data_matrix[i,]%>%
-        matrix(.,
-               nrow=1,
-               ncol=p)
-
-      data_matrix_list[[i]]<-
-        I_J%x%c_i_T
-
-    }
-
-
-    data_matrix_list<-lapply(data_matrix_list,as.data.frame)
-
-    #Collapse into a single df:
-
-    data_matrix<-
-      dplyr::bind_rows(data_matrix_list)%>%
-      as.matrix
-
-    return(data_matrix)
-
-  }
-
-
-  #--------------------------#
-
-  #Define X_kron (nJ*Jp):
-
-  X_kron_mat<-
-    ss_data_matrix_fn(data_matrix=X,
-                      J=J)
-
-  #--------------------------#
+  #From here, define derived data objects both the marginal and ss models:####
 
   #For group level model only:
 
-  #Creating x_ik (1 x p_k) and x_i(-k) (1 x p_(-k))
+  #Creating X_k (n x p_k)
+  #and X_-k (n x p_-k)
 
-  #Creating X_k (nJ x Jp_k)
-  #and X_-k (nJ x Jp_-k)
+  X_dim_df<-
+    data.frame(n=n,
+               p_k=p_k,
+               k=1:K)
 
-  X_dim_df<-data.frame(n=n,
-                       p_k=p_k,
-                       k=1:K)
+  names(X_dim_df)<-
+    c('n',
+      'p_k',
+      'k')
 
-  names(X_dim_df)<-c('n',
-                     'p_k',
-                     'k')
-
-  X_dim_df<-X_dim_df%>%
+  X_dim_df<-
+    X_dim_df%>%
     dplyr::mutate(cum_p_k=cumsum(p_k),
                   lag_cum_p_k=lag(cum_p_k)+1)
 
-  X_dim_df$lag_cum_p_k[1]<-1
-
+  X_dim_df$lag_cum_p_k[1]<-
+    1
 
   #--------------------------#
 
@@ -664,371 +611,219 @@ BayesianLMMFS<-function(
 
     #Define diag(J)
 
-    I_J<-diag(J)
+    I_J<-
+      diag(J)
 
     #--------------------------#
 
     #Define n:
 
-    n<-nrow(data_matrix)
+    n<-
+      nrow(data_matrix)
 
     #--------------------------#
 
     #Define p:
 
-    p<-ncol(data_matrix)
+    p<-
+      ncol(data_matrix)
 
     #--------------------------#
 
     #Define k:
 
-    K<-nrow(X_dim_df)
-
-    X_k<-list()
-
-    X_NOT_k<-list()
-
-    #--------------------------#
-
-    for(i in 1:n){
-
-      X_k[[i]]<-list()
-
-      X_NOT_k[[i]]<-list()
-
-      #--------------------------#
+    K<-
+      nrow(X_dim_df)
 
 
-      for(k in 1:K){
+    X_k<-
+      list()
 
-        k_select<-
-          X_dim_df[k,]
-
-        p_select<-
-          k_select$lag_cum_p_k:k_select$cum_p_k
-
-        p_NOT_select<-
-          which(((1:p)%in%p_select)==F)
-
-        #--------------------------#
-
-        #X_ik (J X Jp_k)
-
-        #This is 1 x p_k:
-
-        X_ik_T<-
-          data_matrix[i,p_select]%>%
-          matrix(.,
-                 nrow=1,
-                 ncol=p_k[k])
-
-        X_k[[i]][[k]]<-
-          I_J%x%X_ik_T
-
-        #--------------------------#
-
-        #X_i_NOT_k (J x Jp_NOT_k)
-
-        #This is 1 x p_-k:
-
-        X_i_NOT_k_T<-
-          data_matrix[i,p_NOT_select]%>%
-          matrix(.,
-                 nrow=1,
-                 ncol=p-p_k[k])
-
-        X_NOT_k[[i]][[k]]<-
-          I_J%x%X_i_NOT_k_T
-
-        #--------------------------#
-
-
-      }#end k loop
-
-      names(X_k[[i]])<-
-        paste('k',1:K,sep='_')
-
-      names(X_NOT_k[[i]])<-
-        paste('k',1:K,sep='_')
-
-      #--------------------------#
-
-    }#end i loop
-
-    names(X_k)<-paste('n',1:n,sep='_')
-
-    names(X_NOT_k)<-paste('n',1:n,sep='_')
-
-
-    #--------------------------#
-
-
-    X_STAR_k<-list()
-
-    X_STAR_NOT_k<-list()
+    X_NOT_k<-
+      list()
 
     #--------------------------#
 
     for(k in 1:K){
 
-      X_STAR_k[[k]]<-
-        lapply(X_k,"[", k)
+      k_select<-
+        X_dim_df[k,]
 
-      X_STAR_NOT_k[[k]]<-
-        lapply(X_NOT_k,"[", k)
+      p_select<-
+        k_select$lag_cum_p_k:k_select$cum_p_k
 
-      #----------------------------------------------------------#
+      p_NOT_select<-
+        which(((1:p)%in%p_select)==F)
 
+      #X_k (n x p_k)
 
-      X_STAR_k[[k]]<-
-        lapply(X_STAR_k[[k]],as.data.frame)
+      X_k[[k]]<-
+        data_matrix[,p_select]%>%
+        matrix(.,
+               nrow=n,
+               ncol=length(p_select))
 
-      X_STAR_NOT_k[[k]]<-
-        lapply(X_STAR_NOT_k[[k]],as.data.frame)
+      #X_-k (n x p_-k)
 
-      #----------------------------------------------------------#
-
-      #Collapse:
-
-      #X_k (nJ x Jp_k)
-
-      X_STAR_k[[k]]<-
-        dplyr::bind_rows(X_STAR_k[[k]])
-
-      X_STAR_k[[k]]<-
-        as.matrix(X_STAR_k[[k]])
-
-      #--------------------------#
+      X_NOT_k[[k]]<-
+        data_matrix[,p_NOT_select]%>%
+        matrix(.,
+               nrow=n,
+               ncol=length(p_NOT_select))
 
 
-      #X_NOT_k (nJ x Jp_NOT_k)
-
-      X_STAR_NOT_k[[k]]<-
-        dplyr::bind_rows(X_STAR_NOT_k[[k]])
-
-      X_STAR_NOT_k[[k]]<-
-        as.matrix(X_STAR_NOT_k[[k]])
-
-      #--------------------------#
+    }#end k for loop
 
 
+    names(X_k)<-
+      paste('k',1:K,sep='_')
 
-    }#end k
+    names(X_NOT_k)<-
+      paste('k',1:K,sep='_')
 
-    names(X_STAR_k)<-paste('k',1:K,sep='_')
 
-    names(X_STAR_NOT_k)<-paste('k',1:K,sep='_')
 
     #--------------------------#
 
-    return(list(
-      'X_STAR_k'=X_STAR_k,
-      'X_STAR_NOT_k'=X_STAR_NOT_k
-    ))
+    return(
+      list
+      (
+        'X_k'=X_k,
+        'X_NOT_k'=X_NOT_k
+      )
+    )
 
   }#end fn
 
-
   #--------------------------#
 
-  X_k_SS<-GROUP_data_matrix_fn(data_matrix=X,
-                               J=J,
-                               X_dim_df = X_dim_df)
+  print('Creating group-level feature data matrices')
 
-  X_STAR_k<-X_k_SS$X_STAR_k
+  X_group<-
+    GROUP_data_matrix_fn(data_matrix=X,
+                         J=J,
+                         X_dim_df = X_dim_df)
 
+  X_k<-
+    X_group$X_k
 
-  X_STAR_NOT_k<-X_k_SS$X_STAR_NOT_k
-
-
+  X_NOT_k<-
+    X_group$X_NOT_k
 
   #--------------------------#
 
 
   #For just bi-level feature selection:
 
-  #Creating x_il (1 x 1) and x_i(-l) (1 x (p-1))
-
-  #Creating X_l (nJ x J)
-  #and X_-l (nJ x J(p-1))
+  #Creating X_l (n x 1)
+  #and X_-l (n x (p-1))
 
   #--------------------------#
 
-
   #Create fn for creating bi-level data matrices
 
-  BI_data_matrix_fn<-function(data_matrix,
-                              J){
+  BI_data_matrix_fn<-
+    function(data_matrix,
+             J){
 
-    #Define diag(J)
+      #Define diag(J)
 
-    I_J<-diag(J)
+      I_J<-
+        diag(J)
 
-    #--------------------------#
+      #--------------------------#
 
-    #Define n:
+      #Define n:
 
-    n<-nrow(data_matrix)
+      n<-
+        nrow(data_matrix)
 
-    #--------------------------#
+      #--------------------------#
 
-    #Define p:
+      #Define p:
 
-    p<-ncol(data_matrix)
+      p<-
+        ncol(data_matrix)
 
-    #--------------------------#
+      #--------------------------#
 
+      X_l<-
+        list()
 
-    X_l<-list()
-
-    X_NOT_l<-list()
-
-    #--------------------------#
-
-    for(i in 1:n){
-
-      X_l[[i]]<-list()
-
-      X_NOT_l[[i]]<-list()
+      X_NOT_l<-
+        list()
 
       #--------------------------#
 
       for(l in 1:p){
 
-        p_select<-l
+        p_select<-
+          l
 
-        p_NOT_select<-which(((1:p)%in%p_select)==F)
+        p_NOT_select<-
+          which(((1:p)%in%p_select)==F)
 
         #--------------------------#
 
-        #X_il (J X J)
+        #X_l (n x 1)
 
-        #This is x_il (1 x 1)
-
-        x_il<-
-          data_matrix[i,l]%>%
+        X_l[[l]]<-
+          data_matrix[,l]%>%
           matrix(.,
-                 nrow=1,
+                 nrow=n,
                  ncol=1)
 
-        X_l[[i]][[l]]<-
-          I_J%x%x_il
-
         #--------------------------#
 
-        #X_i_NOT_l (J x J(p-1))
+        #X_NOT_l (n x (p-1))
 
-        #This is x_i_NOT_l (1 x (p-1))
-
-        x_i_NOT_l_T<-
-          data_matrix[i,p_NOT_select]%>%
+        X_NOT_l[[l]]<-
+          data_matrix[,p_NOT_select]%>%
           matrix(.,
-                 nrow=1,
+                 nrow=n,
                  ncol=p-1)
 
-        X_NOT_l[[i]][[l]]<-
-          I_J%x%x_i_NOT_l_T
-
-        #--------------------------#
 
       }#end l loop
 
-      names(X_l[[i]])<-
+      names(X_l)<-
         paste('l',1:p,sep='_')
 
-      names(X_NOT_l[[i]])<-
+      names(X_NOT_l)<-
         paste('l',1:p,sep='_')
 
-    }#end i loop
-
-    names(X_l)<-
-      paste('n',1:n,sep='_')
-
-    names(X_NOT_l)<-
-      paste('n',1:n,sep='_')
-
-
-    #--------------------------#
-
-
-    #For the bi-level selection model only:
-
-    X_STAR_l<-list()
-
-    X_STAR_NOT_l<-list()
-
-    #--------------------------#
-
-
-    for(l in 1:p){
-
-      X_STAR_l[[l]]<-lapply(X_l,"[",l)
-
-      X_STAR_NOT_l[[l]]<-lapply(X_NOT_l,"[",l)
-
-      #----------------------------------------------------------#
-
-      X_STAR_l[[l]]<-lapply(X_STAR_l[[l]],as.data.frame)
-
-      X_STAR_NOT_l[[l]]<-lapply(X_STAR_NOT_l[[l]],as.data.frame)
-
-      #----------------------------------------------------------#
-
-      #Collapse:
-
-      #X_l (nJ x J)
-
-      X_STAR_l[[l]]<-
-        dplyr::bind_rows(X_STAR_l[[l]])
-
-      X_STAR_l[[l]]<-
-        as.matrix(X_STAR_l[[l]])
 
       #--------------------------#
 
-      #X_NOT_l (nJ x J(p-1))
+      return(
+        list(
+          'X_l'=X_l,
+          'X_NOT_l'=X_NOT_l
+        )
+      )
 
-      X_STAR_NOT_l[[l]]<-
-        dplyr::bind_rows(X_STAR_NOT_l[[l]])
-
-      X_STAR_NOT_l[[l]]<-
-        as.matrix(X_STAR_NOT_l[[l]])
-
-
-    }#end l loop
-
-    names(X_STAR_l)<-paste('l',1:p,sep='_')
-
-    names(X_STAR_NOT_l)<-paste('l',1:p,sep='_')
-
-
-    #----------------------------------------------------------#
-
-    return(list(
-      'X_STAR_l'=X_STAR_l,
-      'X_STAR_NOT_l'=X_STAR_NOT_l
-    ))
-
-  }#end fn
+    }#end fn
 
 
   #--------------------------#
 
+  print('Creating bi-level feature data matrices')
 
-  X_l_SS<-
+  X_bilevel<-
     BI_data_matrix_fn(data_matrix=X,
                       J=J)
 
-  X_STAR_l<-X_l_SS$X_STAR_l
+  X_l<-
+    X_bilevel$X_l
 
+  X_NOT_l<-
+    X_bilevel$X_NOT_l
 
-  X_STAR_NOT_l<-X_l_SS$X_STAR_NOT_l
-
-
-
-  #----------------------------------------------------------------------------------#
+  #--------------------------#
 
   #Create fn for creating Z (nJ x nq):
+
+
 
   Z_data_matrix_fn<-function(data_list,
                              J,
@@ -1036,13 +831,15 @@ BayesianLMMFS<-function(
 
     #Define diag(J)
 
-    I_J<-diag(J)
+    I_J<-
+      diag(J)
 
     #--------------------------#
 
     #Define n:
 
-    n<-length(data_list)
+    n<-
+      length(data_list)
 
     #--------------------------#
 
@@ -1050,25 +847,31 @@ BayesianLMMFS<-function(
 
     #Number of REs:
 
-    q<-q
+    q<-
+      q
 
-    Z_mat<-matrix(0,
-                  nrow=n*J,
-                  ncol=n*q)
+    Z_mat<-
+      matrix(0,
+             nrow=n*J,
+             ncol=n*q)
 
-    Z_dim_df<-data.frame(i=1:n,
-                         J=J,
-                         q=q)
+    Z_dim_df<-
+      data.frame(i=1:n,
+                 J=J,
+                 q=q)
 
-    Z_dim_df<-Z_dim_df%>%
+    Z_dim_df<-
+      Z_dim_df%>%
       dplyr::mutate(cum_J=cumsum(J),
                     cum_q=cumsum(q),
                     lag_cum_J=lag(cum_J)+1,
                     lag_cum_q=lag(cum_q)+1)
 
-    Z_dim_df$lag_cum_J[1]<-1
+    Z_dim_df$lag_cum_J[1]<-
+      1
 
-    Z_dim_df$lag_cum_q[1]<-1
+    Z_dim_df$lag_cum_q[1]<-
+      1
 
     #--------------------------#
 
@@ -1077,7 +880,8 @@ BayesianLMMFS<-function(
       #Z (nJ x nq)
 
       Z_mat[Z_dim_df$lag_cum_J[i]:Z_dim_df$cum_J[i],
-            Z_dim_df$lag_cum_q[i]:Z_dim_df$cum_q[i]]<-data_list[[i]]
+            Z_dim_df$lag_cum_q[i]:Z_dim_df$cum_q[i]]<-
+        data_list[[i]]
 
     }#end i
 
@@ -1089,11 +893,8 @@ BayesianLMMFS<-function(
 
   #--------------------------#
 
-  #Define q:
 
-  q<-ncol(Z[[1]])
-
-  #--------------------------#
+  print('Creating random effect feature data matrices')
 
   Z_mat<-
     Z_data_matrix_fn(data_list=Z,
@@ -1101,7 +902,7 @@ BayesianLMMFS<-function(
                      q=q)
 
 
-  #----------------------------------------------------------------------------------#
+  #-----------------------------------------------------------------------------#
 
 
   #################################
@@ -1126,24 +927,29 @@ BayesianLMMFS<-function(
 
   #This is p x J:
 
-  Beta_tilde<-matrix(0,
-                     nrow=p,
-                     ncol=J)
+  Beta_tilde<-
+    matrix(0,
+           nrow=p,
+           ncol=J)
 
   #This is p_k x J:
 
-  Beta_tilde_k<-list()
+  Beta_tilde_k<-
+    list()
 
   #This is vec(Beta_tilde_k) which is p_kJ x 1
 
-  beta_tilde_k<-list()
+  beta_tilde_k<-
+    list()
 
 
   for(k in 1:K){
 
-    k_select<-X_dim_df[k,]
+    k_select<-
+      X_dim_df[k,]
 
-    p_select<-k_select$lag_cum_p_k:k_select$cum_p_k
+    p_select<-
+      k_select$lag_cum_p_k:k_select$cum_p_k
 
 
     #This is p_k x J
@@ -1175,7 +981,8 @@ BayesianLMMFS<-function(
 
   #For storing Beta_k (p_k x J):####
 
-  Beta_k<-list()
+  Beta_k<-
+    list()
 
   #-------------------------#
 
@@ -1183,7 +990,8 @@ BayesianLMMFS<-function(
 
   #We need this for outputting MCMC samples for Beta (p x J):
 
-  beta_k<-list()
+  beta_k<-
+    list()
 
 
   #----------------------------------------------------------------------------------#
@@ -1192,92 +1000,97 @@ BayesianLMMFS<-function(
 
   #This is beta_tilde_l^T (1 x J):
 
-  beta_tilde_l<-list()
+  beta_tilde_l<-
+    list()
 
   for(l in 1:p){
 
-    p_select<-l
+    p_select<-
+      l
 
-    beta_tilde_l[[l]]<-Beta_tilde[p_select,]%>%
+    beta_tilde_l[[l]]<-
+      Beta_tilde[p_select,]%>%
       matrix(.,
              nrow=J,
              ncol=1)
 
   }
 
-  names(beta_tilde_l)<-paste('l',1:p,sep='_')
+  names(beta_tilde_l)<-
+    paste('l',1:p,sep='_')
 
   #----------------------------------------------------------------------------------#
 
 
   #Beta_NOT_l (p-1 x J):####
 
-  Beta<-matrix(0,
-               nrow=p,
-               ncol=J)
+  Beta<-
+    matrix(0,
+           nrow=p,
+           ncol=J)
 
 
-  #This is beta_NOT_l ((p-1)J x 1):
+  #This is Beta_NOT_l (p-1 x J):
 
-  beta_NOT_l<-list()
+  Beta_NOT_l<-list()
 
   for(l in 1:p){
 
-    p_select<-l
+    p_select<-
+      l
 
-    p_NOT_select<-which(((1:p)%in%p_select)==F)
+    p_NOT_select<-
+      which(((1:p)%in%p_select)==F)
 
-    Beta_NOT_l<-Beta[p_NOT_select,]%>%
+    Beta_NOT_l[[l]]<-
+      Beta[p_NOT_select,]%>%
       matrix(.,
              nrow=length(p_NOT_select),
              ncol=J)
 
+  }#end l for loop
 
-    beta_NOT_l[[l]]<-matrix(Beta_NOT_l,
-                            nrow=length(p_NOT_select)*J,
-                            ncol=1)
-
-  }
-
-  names(beta_NOT_l)<-paste('l',1:p,sep='_')
+  names(Beta_NOT_l)<-
+    paste('l',1:p,sep='_')
 
   #----------------------------------------------------------------------------------#
 
   #Beta_NOT_k (p(-k) x J):####
 
-  #This is beta_NOT_k (p(-k)J x 1):
-
-  beta_NOT_k<-list()
+  Beta_NOT_k<-
+    list()
 
   for(k in 1:K){
 
-    k_select<-X_dim_df[k,]
+    k_select<-
+      X_dim_df[k,]
 
-    p_select<-k_select$lag_cum_p_k:k_select$cum_p_k
+    p_select<-
+      k_select$lag_cum_p_k:k_select$cum_p_k
 
-    p_NOT_select<-which(((1:p)%in%p_select)==F)
+    p_NOT_select<-
+      which(((1:p)%in%p_select)==F)
 
-    Beta_NOT_k<-Beta[p_NOT_select,]%>%
+    Beta_NOT_k[[k]]<-
+      Beta[p_NOT_select,]%>%
       matrix(.,
              nrow=length(p_NOT_select),
              ncol=J)
 
-    beta_NOT_k[[k]]<-matrix(Beta_NOT_k,
-                            nrow=length(p_NOT_select)*J,
-                            ncol=1)
-
   }
 
-  names(beta_NOT_k)<-paste('k',1:K,sep='_')
+  names(Beta_NOT_k)<-
+    paste('k',1:K,sep='_')
 
 
   #----------------------------------------------------------------------------------#
 
   #pi_0k:####
 
-  pi_0k<-matrix(1,
-                nrow=K,
-                ncol=1)
+  pi_0k<-
+    matrix(1,
+           nrow=K,
+           ncol=1)
 
 
   #----------------------------------------------------------------------------------#
@@ -1285,72 +1098,74 @@ BayesianLMMFS<-function(
 
   #pi_0l:####
 
-  pi_0l<-matrix(1,
-                nrow=p,
-                ncol=1)
+  pi_0l<-
+    matrix(1,
+           nrow=p,
+           ncol=1)
 
   #----------------------------------------------------------------------------------#
 
   #theta_beta_tilde:####
 
-  theta_beta_tilde<-1
+  theta_beta_tilde<-
+    1
 
   #----------------------------------------------------------------------------------#
 
 
   #theta_tau2:####
 
-  theta_tau2<-1
+  theta_tau2<-
+    1
 
   #----------------------------------------------------------------------------------#
 
   #b (nq x 1):####
 
-  b_list<-list()
-
-  for(i in 1:n){
-
-    b_list[[i]]<-matrix(0,
-                        nrow=q,
-                        ncol=1)
-
-  }
-
-  b<-dplyr::bind_rows(lapply(b_list,as.data.frame))%>%
-    as.matrix
+  b<-
+    matrix(0,
+           nrow=n*q,
+           ncol=1)
 
   #----------------------------------------------------------------------------------#
 
   #sigma2:####
 
-  sigma2<-1
+  sigma2<-
+    1
 
   #----------------------------------------------------------------------------------#
 
   #s2####
 
-  s2<-1
+  s2<-
+    1
 
   #----------------------------------------------------------------------------------#
 
   #Sigma (J x J):####
 
-  Sigma<-diag(J)
+  Sigma<-
+    diag(J)
 
   #----------------------------------------------------------------------------------#
 
 
   #tau_l2 (p x 1):####
 
-  tau_l2<-matrix(1,
-                 nrow=p,
-                 ncol=1)
+  tau_l2<-
+    matrix(1,
+           nrow=p,
+           ncol=1)
 
   #----------------------------------------------------------------------------------#
 
   #G (q x q)####
 
-  G<-diag(q)
+  G<-
+    diag(q)
+
+
 
   #----------------------------------------------------------------------------------#
 
@@ -1358,19 +1173,23 @@ BayesianLMMFS<-function(
 
   # Number of MCMC Iterations
 
-  nsim<-nsim
+  nsim<-
+    nsim
 
   # Thinning interval
 
-  thin<-thin
+  thin<-
+    thin
 
   # Burnin
 
-  burn<-burn
+  burn<-
+    burn
 
   #Total MCMC iterations:
 
-  total_sim<-(nsim-burn)/thin
+  total_sim<-
+    (nsim-burn)/thin
 
   #---------------------------------------------------------------------------------#
 
@@ -1381,95 +1200,102 @@ BayesianLMMFS<-function(
 
   #For labeling MCMC storage objects:
 
-  time_labels<-paste('t',1:J,sep='')
+  time_labels<-
+    paste('t',1:J,sep='')
 
   #---------------------------------------------------------------------------------#
 
   #theta_beta_tilde:####
 
-  theta_beta_tilde_mcmc_df<-data.frame(value=0,
-                                       feature_group_size=NA,
-                                       feature_group=NA,
-                                       subject=NA,
-                                       parameter='theta_beta_tilde',
-                                       row_occasion=NA,
-                                       occasion=NA,
-                                       q=NA,
-                                       row_q=NA,
-                                       feature=NA)
+  theta_beta_tilde_mcmc_df<-
+    data.frame(value=0,
+               feature_group_size=NA,
+               feature_group=NA,
+               subject=NA,
+               parameter='theta_beta_tilde',
+               row_occasion=NA,
+               occasion=NA,
+               q=NA,
+               row_q=NA,
+               feature=NA)
 
   theta_beta_tilde_mcmc_df<-
     lapply(1:total_sim, function(x) theta_beta_tilde_mcmc_df)%>%
     dplyr::bind_rows()
 
-  theta_beta_tilde_mcmc_df$mcmc_iter<-1:total_sim
+  theta_beta_tilde_mcmc_df$mcmc_iter<-
+    1:total_sim
 
 
   #---------------------------------------------------------------------------------#
 
   #theta_tau2:#####
 
-  theta_tau2_mcmc_df<-data.frame(value=0,
-                                 feature_group_size=NA,
-                                 feature_group=NA,
-                                 occasion=NA,
-                                 subject=NA,
-                                 parameter='theta_tau2',
-                                 row_occasion=NA,
-                                 q=NA,
-                                 row_q=NA,
-                                 feature=NA)
+  theta_tau2_mcmc_df<-
+    data.frame(value=0,
+               feature_group_size=NA,
+               feature_group=NA,
+               occasion=NA,
+               subject=NA,
+               parameter='theta_tau2',
+               row_occasion=NA,
+               q=NA,
+               row_q=NA,
+               feature=NA)
 
   theta_tau2_mcmc_df<-
     lapply(1:total_sim, function(x) theta_tau2_mcmc_df)%>%
     dplyr::bind_rows()
 
-  theta_tau2_mcmc_df$mcmc_iter<-1:total_sim
+  theta_tau2_mcmc_df$mcmc_iter<-
+    1:total_sim
 
   #---------------------------------------------------------------------------------#
 
   #sigma2:#####
 
-  sigma2_mcmc_df<-data.frame(value=0,
-                             feature_group_size=NA,
-                             feature_group=NA,
-                             subject=NA,
-                             parameter='sigma2',
-                             row_occasion=NA,
-                             occasion=NA,
-                             q=NA,
-                             row_q=NA,
-                             feature=NA)
+  sigma2_mcmc_df<-
+    data.frame(value=0,
+               feature_group_size=NA,
+               feature_group=NA,
+               subject=NA,
+               parameter='sigma2',
+               row_occasion=NA,
+               occasion=NA,
+               q=NA,
+               row_q=NA,
+               feature=NA)
 
   sigma2_mcmc_df<-
     lapply(1:total_sim, function(x) sigma2_mcmc_df)%>%
     dplyr::bind_rows()
 
-  sigma2_mcmc_df$mcmc_iter<-1:total_sim
+  sigma2_mcmc_df$mcmc_iter<-
+    1:total_sim
 
 
   #---------------------------------------------------------------------------------#
 
   #s2:#####
 
-  s2_mcmc_df<-data.frame(value=0,
-                         feature_group_size=NA,
-                         feature_group=NA,
-                         subject=NA,
-                         parameter='s2',
-                         row_occasion=NA,
-                         occasion=NA,
-                         q=NA,
-                         row_q=NA,
-                         feature=NA)
+  s2_mcmc_df<-
+    data.frame(value=0,
+               feature_group_size=NA,
+               feature_group=NA,
+               subject=NA,
+               parameter='s2',
+               row_occasion=NA,
+               occasion=NA,
+               q=NA,
+               row_q=NA,
+               feature=NA)
 
   s2_mcmc_df<-
     lapply(1:total_sim, function(x) s2_mcmc_df)%>%
     dplyr::bind_rows()
 
-  s2_mcmc_df$mcmc_iter<-1:total_sim
-
-
+  s2_mcmc_df$mcmc_iter<-
+    1:total_sim
 
   #---------------------------------------------------------------------------------#
 
@@ -1515,11 +1341,14 @@ BayesianLMMFS<-function(
                          nrow=q,
                          ncol=q))
 
-  names(G_mcmc_df)<-as.character(1:q)
+  names(G_mcmc_df)<-
+    as.character(1:q)
 
-  G_mcmc_df$row_q<-1:q
+  G_mcmc_df$row_q<-
+    1:q
 
-  G_mcmc_df<-G_mcmc_df%>%
+  G_mcmc_df<-
+    G_mcmc_df%>%
     tidyr::gather(q,value,-row_q)%>%
     dplyr::mutate(feature_group_size=NA,
                   feature_group=NA,
@@ -1537,21 +1366,23 @@ BayesianLMMFS<-function(
   G_mcmc_df$mcmc_iter<-
     rep(1:total_sim,each=q^2)
 
+
   #---------------------------------------------------------------------------------#
 
 
   #pi_0k:####
 
-  pi_0k_mcmc_df<-data.frame(value=rep(0,K),
-                            feature_group_size=p_k,
-                            feature_group=1:K,
-                            occasion=NA,
-                            subject=NA,
-                            parameter='pi_0k',
-                            row_occasion=NA,
-                            q=NA,
-                            row_q=NA,
-                            feature=NA)
+  pi_0k_mcmc_df<-
+    data.frame(value=rep(0,K),
+               feature_group_size=p_k,
+               feature_group=1:K,
+               occasion=NA,
+               subject=NA,
+               parameter='pi_0k',
+               row_occasion=NA,
+               q=NA,
+               row_q=NA,
+               feature=NA)
 
 
   pi_0k_mcmc_df<-
@@ -1567,16 +1398,17 @@ BayesianLMMFS<-function(
 
   #pi_0l:####
 
-  pi_0l_mcmc_df<-data.frame(value=rep(0,p),
-                            feature_group_size=NA,
-                            feature_group=NA,
-                            occasion=NA,
-                            subject=NA,
-                            parameter='pi_0l',
-                            row_occasion=NA,
-                            q=NA,
-                            row_q=NA,
-                            feature=1:p)
+  pi_0l_mcmc_df<-
+    data.frame(value=rep(0,p),
+               feature_group_size=NA,
+               feature_group=NA,
+               occasion=NA,
+               subject=NA,
+               parameter='pi_0l',
+               row_occasion=NA,
+               q=NA,
+               row_q=NA,
+               feature=1:p)
 
 
   pi_0l_mcmc_df<-
@@ -1597,9 +1429,11 @@ BayesianLMMFS<-function(
                          nrow=q,
                          ncol=n))
 
-  names(b_mcmc_df)<-as.character(1:n)
+  names(b_mcmc_df)<-
+    as.character(1:n)
 
-  b_mcmc_df<-b_mcmc_df%>%
+  b_mcmc_df<-
+    b_mcmc_df%>%
     dplyr::mutate(q=1:q)%>%
     tidyr::gather(subject,value,-q)%>%
     dplyr::mutate(
@@ -1625,13 +1459,16 @@ BayesianLMMFS<-function(
 
   #No need to output Beta_tilde:
 
-  Beta_mcmc_list<-list()
+  Beta_mcmc_list<-
+    list()
 
   for(k in 1:K){
 
-    k_select<-X_dim_df[k,]
+    k_select<-
+      X_dim_df[k,]
 
-    p_select<-k_select$lag_cum_p_k:k_select$cum_p_k
+    p_select<-
+      k_select$lag_cum_p_k:k_select$cum_p_k
 
     Beta_mcmc_list[[k]]<-
       matrix(0,
@@ -1641,25 +1478,32 @@ BayesianLMMFS<-function(
     Beta_mcmc_list[[k]]<-
       as.data.frame(Beta_mcmc_list[[k]])
 
-    names(Beta_mcmc_list[[k]])<-time_labels
+    names(Beta_mcmc_list[[k]])<-
+      time_labels
 
-    Beta_mcmc_list[[k]]$feature_group_size<-k_select$p_k
+    Beta_mcmc_list[[k]]$feature_group_size<-
+      k_select$p_k
 
-    Beta_mcmc_list[[k]]<-Beta_mcmc_list[[k]]%>%
+    Beta_mcmc_list[[k]]<-
+      Beta_mcmc_list[[k]]%>%
       tidyr::gather(occasion,value,-feature_group_size)
 
     #-------------------------------#
 
-    p_k_index<-k_select$lag_cum_p_k:k_select$cum_p_k
+    p_k_index<-
+      k_select$lag_cum_p_k:k_select$cum_p_k
 
-    p_k_index<-as.character(p_k_index)
+    p_k_index<-
+      as.character(p_k_index)
 
     #-------------------------------#
 
 
-    Beta_mcmc_list[[k]]$feature=as.numeric(p_k_index)
+    Beta_mcmc_list[[k]]$feature<-
+      as.numeric(p_k_index)
 
-    Beta_mcmc_list[[k]]<-Beta_mcmc_list[[k]]%>%
+    Beta_mcmc_list[[k]]<-
+      Beta_mcmc_list[[k]]%>%
       dplyr::mutate(
         feature_group=k,
         subject=NA,
@@ -1669,7 +1513,7 @@ BayesianLMMFS<-function(
         q=NA,
         row_q=NA)
 
-  }
+  }#end k for loop
 
 
   #Collapse:
@@ -1690,16 +1534,17 @@ BayesianLMMFS<-function(
 
   #tau_l2:####
 
-  tau_l2_mcmc_df<-data.frame(value=rep(0,p),
-                             feature_group_size=NA,
-                             feature_group=NA,
-                             occasion=NA,
-                             subject=NA,
-                             parameter='tau_l2',
-                             row_occasion=NA,
-                             q=NA,
-                             row_q=NA,
-                             feature=1:p)
+  tau_l2_mcmc_df<-
+    data.frame(value=rep(0,p),
+               feature_group_size=NA,
+               feature_group=NA,
+               occasion=NA,
+               subject=NA,
+               parameter='tau_l2',
+               row_occasion=NA,
+               q=NA,
+               row_q=NA,
+               feature=1:p)
 
 
   tau_l2_mcmc_df<-
@@ -1714,15 +1559,19 @@ BayesianLMMFS<-function(
 
   #V_k (p_k x p_k):####
 
-  V_k<-list()
+  V_k<-
+    list()
 
   for(k in 1:K){
 
-    k_select<-X_dim_df[k,]
+    k_select<-
+      X_dim_df[k,]
 
-    p_select<-k_select$lag_cum_p_k:k_select$cum_p_k
+    p_select<-
+      k_select$lag_cum_p_k:k_select$cum_p_k
 
-    V_k[[k]]<-diag(length(p_select))
+    V_k[[k]]<-
+      diag(length(p_select))
 
   }
 
@@ -1795,7 +1644,8 @@ BayesianLMMFS<-function(
 
     #Define once here re: comp. time:
 
-    solve_Sigma<-solve(Sigma)
+    solve_Sigma<-
+      solve(Sigma)
 
     #-------------------------#
 
@@ -1814,9 +1664,11 @@ BayesianLMMFS<-function(
 
       #Relevant indices for p_k:
 
-      k_select<-X_dim_df[k,]
+      k_select<-
+        X_dim_df[k,]
 
-      p_select<-k_select$lag_cum_p_k:k_select$cum_p_k
+      p_select<-
+        k_select$lag_cum_p_k:k_select$cum_p_k
 
 
       #----------------------------------------------------------------------------------#
@@ -1824,30 +1676,27 @@ BayesianLMMFS<-function(
 
       #Update V_k (p_k x p_k) via tau_l2:####
 
-      diag_V_k<-tau_l2[p_select]
+      diag_V_k<-
+        tau_l2[p_select]
 
       if(p_k[k]>1){
 
-        V_k[[k]]<-diag(c(diag_V_k))
+        V_k[[k]]<-
+          diag(c(diag_V_k))
 
       }else{
 
-        V_k[[k]]<-diag_V_k
+        V_k[[k]]<-
+          diag_V_k
 
-      }
+      }#end if/else statement
 
       #----------------------------------------------------------------------------------#
 
-      #Define I_J kron V_k:
-
-      V_k_star<-
-        (I_J%x%V_k[[k]])
-
-      #-------------------------------#
-
       #Define I_pk:
 
-      I_pk<-diag(p_k[k])
+      I_pk<-
+        diag(p_k[k])
 
       #-------------------------------#
 
@@ -1855,45 +1704,68 @@ BayesianLMMFS<-function(
 
       Omega_k<-
         (
-          V_k_star%*%
-            t(X_STAR_k[[k]])%*%
-            X_STAR_k[[k]]%*%
-            V_k_star
+          I_J%x%
+            (
+              V_k[[k]]%*%
+                t(X_k[[k]])%*%
+                X_k[[k]]%*%
+                V_k[[k]]
+            )
         )+
         (
           sigma2*
             (solve_Sigma%x%I_pk)
         )
 
-
       #Calculate inverse once to save comp time:
 
-      inv_Omega_k<-solve(Omega_k)
+      inv_Omega_k<-
+        solve(Omega_k)
 
       #-------------------------------#
 
       #Calculate z_k (Jn x 1):
 
       z_k<-
-        vec_Y_transpose-
-        (
-          X_STAR_NOT_k[[k]]%*%beta_NOT_k[[k]]+
-            Z_mat%*%b
-        )
+        matrix(
+          Y_transpose-
+            t(X_NOT_k[[k]]%*%Beta_NOT_k[[k]]),
+          nrow=J*n,
+          ncol=1
+        )-
+        Z_mat%*%b
 
+
+      #This is Z_k (J x n):
+
+      Z_k<-
+        matrix(z_k,
+               nrow=J,
+               ncol=n)
 
       #-------------------------------#
 
+
       #Calculate f_k (1 x 1):
 
+      #first term (p_k J X 1):
+
+      f_k_term_1<-
+        (
+          V_k[[k]]%*%
+            t(X_k[[k]])%*%
+            t(Z_k)
+        )%>%
+        matrix(.,
+               nrow=p_k[k]*J,
+               ncol=1)
+
+
       f_k<-
-        t(z_k)%*%
-        X_STAR_k[[k]]%*%
-        V_k_star%*%
+        t(f_k_term_1)%*%
         inv_Omega_k%*%
-        V_k_star%*%
-        t(X_STAR_k[[k]])%*%
-        z_k
+        f_k_term_1
+
 
       #----------------------------------------------------------------------------------#
 
@@ -1916,10 +1788,6 @@ BayesianLMMFS<-function(
           )
         )^(1/2)
 
-
-      #Convert to numeric value from dense matrix:
-
-      pi_0k_prob_num<-as.numeric(pi_0k_prob_num)
 
 
       if(pi_0k_prob_num==Inf){
@@ -1949,17 +1817,13 @@ BayesianLMMFS<-function(
 
 
       post_mean_beta_tilde_k<-
-        (inv_Omega_k%*%
-           V_k_star%*%
-           t(X_STAR_k[[k]])%*%
-           z_k
-        )%>%
-        as.matrix()
+        inv_Omega_k%*%
+        f_k_term_1
+
 
       post_cov_beta_tilde_k<-
-        (sigma2*
-           inv_Omega_k)%>%
-        as.matrix()
+        sigma2*
+        inv_Omega_k
 
       #-------------------------------#
 
@@ -2009,11 +1873,12 @@ BayesianLMMFS<-function(
         Beta_tilde_k[[k]]
 
 
-      #Calculate beta_k (p_kC x 1)
+      #Calculate beta_k (p_k J x 1) for MCMC output:
 
-      beta_k[[k]]<-matrix(Beta_k[[k]],
-                          nrow=p_k[k]*J,
-                          ncol=1)
+      beta_k[[k]]<-
+        matrix(Beta_k[[k]],
+               nrow=p_k[k]*J,
+               ncol=1)
 
       #----------------------------------------------------------------------------------#
 
@@ -2025,35 +1890,49 @@ BayesianLMMFS<-function(
 
     for(l in 1:p){
 
-      #Calculate z_l (Jn x 1):
-
       z_l<-
-        vec_Y_transpose-
-        (X_STAR_NOT_l[[l]]%*%
-           beta_NOT_l[[l]]+
-           Z_mat%*%b)
+        matrix(
+          Y_transpose-
+            t(X_NOT_l[[l]]%*%Beta_NOT_l[[l]]),
+          nrow=J*n,
+          ncol=1
+        )-
+        Z_mat%*%b
+
+
+      #This is Z_l (J x n):
+
+      Z_l<-
+        matrix(z_l,
+               nrow=J,
+               ncol=n)
 
       #-------------------------#
 
-      #Calculate m_l (nJ x1):
 
-      m_l<-
-        X_STAR_l[[l]]%*%
-        beta_tilde_l[[l]]
+      #Calculate M_l (J x n):
 
-      #Define m_l^T once here to improve comp time:
-
-      m_lT<-t(m_l)
+      M_l<-
+        beta_tilde_l[[l]]%*%
+        t(X_l[[l]])
 
       #-------------------------#
 
       #Calculate sigma_l_inverse (1x1)
 
+      sigma_l_trace_term<-
+        sum(
+          diag(
+            t(M_l)%*%
+              M_l
+          )
+        )
+
       sigma_l_inverse<-
         s2/
         (
           sigma2+
-            (s2*m_lT%*%m_l)
+            (s2*sigma_l_trace_term)
         )
 
       #-------------------------#
@@ -2061,16 +1940,17 @@ BayesianLMMFS<-function(
 
       #Calculate f_l (1 x 1):
 
+      f_l_trace_term<-
+        sum(
+          diag(
+            t(M_l)%*%
+              Z_l
+          )
+        )
+
       f_l<-
-        t(z_l)%*%
-        m_l%*%
-        sigma_l_inverse%*%
-        m_lT%*%
-        z_l
-
-      #Turn into a numeric var. from a dense matrix:
-
-      f_l<-as.numeric(f_l)
+        f_l_trace_term^2*
+        sigma_l_inverse
 
       #----------------------------------------------------------------------------------#
 
@@ -2086,9 +1966,8 @@ BayesianLMMFS<-function(
                                   a=0,
                                   b=Inf,
                                   mean=
-                                    sigma_l_inverse*
-                                    m_lT%*%
-                                    z_l,
+                                    f_l_trace_term*
+                                    sigma_l_inverse,
                                   sd=
                                     sqrt(
                                       sigma2*
@@ -2129,10 +2008,6 @@ BayesianLMMFS<-function(
         )
 
 
-      #Turn into a numeric var. from a dense matrix:
-
-      pi_0l_prob_num<-as.numeric(pi_0l_prob_num)
-
       if(pi_0l_prob_num==Inf){
 
         pi_0l_prob_num<-
@@ -2165,80 +2040,71 @@ BayesianLMMFS<-function(
 
     #Create updated Beta (p x J) via Beta_k:####
 
-    Beta<-lapply(Beta_k,as.data.frame)%>%
+    Beta<-
+      lapply(Beta_k,as.data.frame)%>%
       dplyr::bind_rows()%>%
       as.matrix()
-
-    #-------------------------------#
-
-    #Create updated beta (pJ x 1) via Beta_k:
-
-    beta<-
-      matrix(Beta,
-             nrow=p*J,
-             ncol=1)
 
     #-------------------------------#
 
     #Update Beta_tilde (p x J) for Sigma IW update:
 
-    Beta_tilde<-lapply(Beta_tilde_k,as.data.frame)%>%
+    Beta_tilde<-
+      lapply(Beta_tilde_k,as.data.frame)%>%
       dplyr::bind_rows()%>%
       as.matrix()
 
     #-------------------------------#
 
-    #Update beta_NOT_k (p-kJ x 1):
+    #Update Beta_NOT_k (p-k x J):
 
     for(k in 1:K){
 
-      k_select<-X_dim_df[k,]
+      k_select<-
+        X_dim_df[k,]
 
-      p_select<-k_select$lag_cum_p_k:k_select$cum_p_k
+      p_select<-
+        k_select$lag_cum_p_k:k_select$cum_p_k
 
-      p_NOT_select<-which(((1:p)%in%p_select)==F)
+      p_NOT_select<-
+        which(((1:p)%in%p_select)==F)
 
-      Beta_NOT_k<-Beta[p_NOT_select,]%>%
+      Beta_NOT_k[[k]]<-
+        Beta[p_NOT_select,]%>%
         matrix(.,
                nrow=length(p_NOT_select),
                ncol=J)
 
-      beta_NOT_k[[k]]<-matrix(Beta_NOT_k,
-                              nrow=length(p_NOT_select)*J,
-                              ncol=1)
-
-    }
-
+    }#end k for loop
 
     #-------------------------------#
 
-    #Update beta_NOT_l ((p-1)J x 1):
+    #Update Beta_NOT_l ((p-1)J x 1):
 
     for(l in 1:p){
 
-      p_select<-l
+      p_select<-
+        l
 
-      p_NOT_select<-which(((1:p)%in%p_select)==F)
+      p_NOT_select<-
+        which(((1:p)%in%p_select)==F)
 
-      Beta_NOT_l<-Beta[p_NOT_select,]%>%
+      Beta_NOT_l[[l]]<-
+        Beta[p_NOT_select,]%>%
         matrix(.,
                nrow=length(p_NOT_select),
                ncol=J)
 
-
-      beta_NOT_l[[l]]<-matrix(Beta_NOT_l,
-                              nrow=length(p_NOT_select)*J,
-                              ncol=1)
-
-    }
+    }#end l for loop
 
     #-------------------------------#
 
-    #Update beta_tilde_l (C x 1)
+    #Update beta_tilde_l (J x 1)
 
     for(l in 1:p){
 
-      p_select<-l
+      p_select<-
+        l
 
       beta_tilde_l[[l]]<-
         Beta_tilde[p_select,]%>%
@@ -2246,8 +2112,7 @@ BayesianLMMFS<-function(
                nrow=J,
                ncol=1)
 
-    }
-
+    }#end l for loop
 
     #----------------------------------------------------------------------------------#
 
@@ -2263,39 +2128,38 @@ BayesianLMMFS<-function(
 
     #Define once here re: comp time:
 
-    inv_Sigma_b<-solve(Sigma_b)
+    inv_Sigma_b<-
+      solve(Sigma_b)
 
     #-------------------------------#
+
+    #Define R_b (J x n):
+
+    R_b<-
+      Y_transpose-
+      t(X%*%Beta)
 
     #Define r_b (Jn x 1):
 
     r_b<-
-      vec_Y_transpose-
-      X_kron_mat%*%beta
+      matrix(R_b,
+             nrow=J*n,
+             ncol=1)
 
     #-------------------------------#
-
-
-    #N.b. rcpp code does not like sparse matrices, so
-    #transform posterior mean and vcv matrix back
-    #to dense matrices here:
 
     #Group these matrix multiplication terms
     #re: faster comp time:
 
     post_mean_b<-
-      (inv_Sigma_b%*%
-         t(Z_mat)%*%
-         r_b
-      )%>%
-      as.matrix()
+      inv_Sigma_b%*%
+      t(Z_mat)%*%
+      r_b
+
 
     post_cov_b<-
-      (
-        sigma2*
-          inv_Sigma_b
-      )%>%
-      as.matrix()
+      sigma2*
+      inv_Sigma_b
 
 
     b<-
@@ -2312,10 +2176,11 @@ BayesianLMMFS<-function(
 
     #Create b_mat which is q x n for Gibbs update for G (q x q)
 
-    b_mat<-matrix(b,
-                  nrow=q,
-                  ncol=n,
-                  byrow=F)
+    b_mat<-
+      matrix(b,
+             nrow=q,
+             ncol=n,
+             byrow=F)
 
 
     #----------------------------------------------------------------------------------#
@@ -2340,12 +2205,13 @@ BayesianLMMFS<-function(
 
     #Update theta_beta_tilde (1 x 1): ####
 
-    theta_beta_tilde<-rbeta(n=1,
-                            shape1=
-                              a_1+sum(pi_0k),
-                            shape2=
-                              b_1+K-sum(pi_0k)
-    )
+    theta_beta_tilde<-
+      rbeta(n=1,
+            shape1=
+              a_1+sum(pi_0k),
+            shape2=
+              b_1+K-sum(pi_0k)
+      )
 
 
 
@@ -2354,13 +2220,14 @@ BayesianLMMFS<-function(
 
     #Update theta_tau2 (1 x 1):####
 
-    theta_tau2<-rbeta(n=1,
-                      shape1=
-                        g+
-                        (pi_0l%>%sum),
-                      shape2=
-                        h+p-
-                        (pi_0l%>%sum))
+    theta_tau2<-
+      rbeta(n=1,
+            shape1=
+              g+
+              (pi_0l%>%sum),
+            shape2=
+              h+p-
+              (pi_0l%>%sum))
 
 
     #----------------------------------------------------------------------------------#
@@ -2371,23 +2238,29 @@ BayesianLMMFS<-function(
     #Define r (Jn x 1)
 
     r<-
-      vec_Y_transpose-
-      (X_kron_mat%*%beta+Z_mat%*%b)
+      matrix(
+        Y_transpose-
+          t(X%*%Beta),
+        nrow=J*n,
+        ncol=1
+      )-
+      Z_mat%*%b
+
 
     #Use crossprod to calculate r'r here re: comp. time :
 
     rtr<-
-      crossprod(r)%>%
-      as.numeric
+      crossprod(r)
 
     #-------------------------------#
 
-    sigma2<-MCMCpack::rinvgamma(n=1,
-                                shape=
-                                  alpha+(.5*n*J),
-                                scale=
-                                  gamma+(.5*rtr)
-    )
+    sigma2<-
+      MCMCpack::rinvgamma(n=1,
+                          shape=
+                            alpha+(.5*n*J),
+                          scale=
+                            gamma+(.5*rtr)
+      )
 
     #----------------------------------------------------------------------------------#
 
@@ -2396,11 +2269,14 @@ BayesianLMMFS<-function(
 
     #Identify for which Beta_tilde_k pi_0k = 1
 
-    p_k_selected<-p_k[(pi_0k==1)]
+    p_k_selected<-
+      p_k[(pi_0k==1)]
 
+    cross_prod_Beta_tilde<-
+      crossprod(Beta_tilde)
 
     post_scale_Sigma<-
-      (t(Beta_tilde)%*%Beta_tilde)+
+      cross_prod_Beta_tilde+
       Q
 
 
@@ -2418,16 +2294,17 @@ BayesianLMMFS<-function(
 
     #Update s2 (1 x 1):####
 
-    s2<-MCMCpack::rinvgamma(n=1,
-                            shape=
-                              o+
-                              (pi_0l%>%sum/2),
-                            scale=
-                              u+
-                              (
-                                ((tau_l2)^2%>%sum)/2
-                              )
-    )
+    s2<-
+      MCMCpack::rinvgamma(n=1,
+                          shape=
+                            o+
+                            (pi_0l%>%sum/2),
+                          scale=
+                            u+
+                            (
+                              ((tau_l2)^2%>%sum)/2
+                            )
+      )
 
     #This can become Inf if sum(pi_0l)=0
 
@@ -2436,6 +2313,8 @@ BayesianLMMFS<-function(
       s2<-10^20
 
     }
+
+
 
     #-----------------------------------------------------------------------#
 
@@ -2446,10 +2325,6 @@ BayesianLMMFS<-function(
     #-----------------------------------------------------------------------#
 
     #-----------------------------------------------------------------------#
-
-
-
-
 
 
 
@@ -2623,26 +2498,27 @@ BayesianLMMFS<-function(
 
   #Aggregate mcmc results:
 
-  MCMC_output_df<-rbind(beta_mcmc_df,
+  MCMC_output_df<-
+    rbind(beta_mcmc_df,
 
-                        pi_0l_mcmc_df,
-                        tau_l2_mcmc_df,
+          pi_0l_mcmc_df,
+          tau_l2_mcmc_df,
 
-                        s2_mcmc_df,
+          s2_mcmc_df,
 
-                        b_mcmc_df,
+          b_mcmc_df,
 
-                        pi_0k_mcmc_df,
+          pi_0k_mcmc_df,
 
-                        G_mcmc_df,
+          G_mcmc_df,
 
-                        Sigma_mcmc_df,
+          Sigma_mcmc_df,
 
-                        sigma2_mcmc_df,
+          sigma2_mcmc_df,
 
-                        theta_beta_tilde_mcmc_df,
+          theta_beta_tilde_mcmc_df,
 
-                        theta_tau2_mcmc_df)
+          theta_tau2_mcmc_df)
 
   #----------------------------------------------------------------------------------#
 
@@ -2666,27 +2542,13 @@ BayesianLMMFS<-function(
 
   #-------------------------------#
 
-  MCMC_summary_df$feature<-as.character(MCMC_summary_df$feature)
+  MCMC_summary_df$feature<-
+    as.character(MCMC_summary_df$feature)
 
-  MCMC_summary_df$subject<-as.numeric(MCMC_summary_df$subject)
-
-  #-------------------------------#
-
-
-  #Identify feature parameters
-  #that have MCMC_median != 0
-
-  selected_features_mcmc<-
-    MCMC_summary_df%>%
-    dplyr::filter(parameter=='beta',
-                  MCMC_median!=0)%>%
-    dplyr::select(feature)%>%
-    unlist%>%
-    unique%>%
-    as.numeric
+  MCMC_summary_df$subject<-
+    as.numeric(MCMC_summary_df$subject)
 
   #-------------------------------#
-
 
   #Print comp. time:
 

@@ -297,7 +297,7 @@ The \code{"MCMC_summary"} data frame containing the summarized MCMC output has t
 
  \item{"feature_group"}{} A number denoting the \mjeqn{k=1,\cdots,K}{} feature groups.
 
- \item{"subject"}{} A number denoting the \mjeqn{i=1,\cdots,n}{} subjects.
+ \item{"subject"}{} A character denoting the \mjeqn{i=1,\cdots,n}{} subjects.
 
  \item{"parameter"}{} A character denoting the model parameter; the model parameters are the
  same here as for the \code{"MCMC_output"} data frame.
@@ -308,9 +308,9 @@ The \code{"MCMC_summary"} data frame containing the summarized MCMC output has t
  each element
  is denoted by the character \code{"tj"}.
 
- \item{"q"}{} A number denoting the \mjeqn{q}{} random effect parameters.
+ \item{"q"}{} A character denoting the \mjeqn{q}{} random effect parameters.
 
- \item{"row_q"}{} A number denoting the \mjeqn{q^2}{} elements of the
+ \item{"row_q"}{} A character denoting the \mjeqn{q^2}{} elements of the
  random effect parameter covariance matrix,
  \mjeqn{\underset{q\times q}{\mathop{\mathbf{G}}}\,}{}.
 
