@@ -1,26 +1,26 @@
 {
-    "id": "D9B7183C",
-    "path": "C:/Users/baerd/Desktop/BayesianLMMFS/Create BayesianLMMFS R package.R",
-    "project_path": "Create BayesianLMMFS R package.R",
+    "id": "F533C926",
+    "path": "C:/Users/baerd/Desktop/BayesianLMMFS/R/BayesianLMMFS.R",
+    "project_path": "R/BayesianLMMFS.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "1979433768",
     "contents": "",
     "dirty": false,
-    "created": 1638295125279.0,
+    "created": 1638295168217.0,
     "source_on_save": false,
     "relative_order": 2,
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "32,0",
-        "scrollLine": "23"
+        "cursorPosition": "525,0",
+        "scrollLine": "0"
     },
     "folds": "",
-    "lastKnownWriteTime": 1645141942,
+    "lastKnownWriteTime": 1645143596,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1645141942662,
+    "last_content_update": 1645143596029,
     "read_only": false,
     "read_only_alternatives": []
 }
